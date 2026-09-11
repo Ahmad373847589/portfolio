@@ -60,15 +60,15 @@ export default class ForestChaseGame {
   resetRound() {
     const padding = 70;
     this.player.x = this.viewWidth * 0.2;
-    this.player.y = this.viewHeight * 0.5;
+    this.player.y = this.playTop + (this.playHeight * 0.58);
     this.fox.x = this.viewWidth * 0.78;
-    this.fox.y = this.viewHeight * 0.5;
+    this.fox.y = this.playTop + (this.playHeight * 0.58);
     this.fox.radius = this.level === 2 ? 30 : 24;
     this.fox.hitbox = this.level === 2 ? 34 : 22;
     this.fox.speed = this.randomSpeed();
     this.fox.angle = this.randomAngle();
     this.player.x = Math.max(padding, Math.min(this.viewWidth - padding, this.player.x));
-    this.player.y = Math.max(padding, Math.min(this.viewHeight - padding, this.player.y));
+    this.player.y = Math.max(this.playTop + padding, Math.min(this.viewHeight - padding, this.player.y));
     this.levelStartedAt = performance.now();
   }
 
@@ -83,6 +83,9 @@ export default class ForestChaseGame {
     this.context.setTransform(ratio, 0, 0, ratio, 0, 0);
     this.viewWidth = width;
     this.viewHeight = height;
+    this.hudHeight = 90;
+    this.playTop = this.hudHeight;
+    this.playHeight = Math.max(170, height - this.hudHeight);
   }
 
   tick(time) {
@@ -104,7 +107,7 @@ export default class ForestChaseGame {
     this.player.x += (direction.x / length) * this.player.speed * delta;
     this.player.y += (direction.y / length) * this.player.speed * delta;
     this.player.x = Math.max(this.player.radius, Math.min(this.viewWidth - this.player.radius, this.player.x));
-    this.player.y = Math.max(this.player.radius, Math.min(this.viewHeight - this.player.radius, this.player.y));
+    this.player.y = Math.max(this.playTop + this.player.radius, Math.min(this.viewHeight - this.player.radius, this.player.y));
 
     this.fox.x += Math.cos(this.fox.angle) * this.fox.speed * delta;
     this.fox.y += Math.sin(this.fox.angle) * this.fox.speed * delta;
@@ -112,8 +115,8 @@ export default class ForestChaseGame {
       this.fox.x = Math.max(this.fox.radius, Math.min(this.viewWidth - this.fox.radius, this.fox.x));
       this.bounceFox('x');
     }
-    if (this.fox.y < this.fox.radius || this.fox.y > this.viewHeight - this.fox.radius) {
-      this.fox.y = Math.max(this.fox.radius, Math.min(this.viewHeight - this.fox.radius, this.fox.y));
+    if (this.fox.y < this.playTop + this.fox.radius || this.fox.y > this.viewHeight - this.fox.radius) {
+      this.fox.y = Math.max(this.playTop + this.fox.radius, Math.min(this.viewHeight - this.fox.radius, this.fox.y));
       this.bounceFox('y');
     }
 
@@ -158,7 +161,7 @@ export default class ForestChaseGame {
       arrow.y += Math.sin(arrow.angle) * arrow.speed * delta;
       const hit = Math.hypot(arrow.x - this.player.x, arrow.y - this.player.y) < this.player.radius + 7;
       if (hit) this.end(false, 'A hunter arrow found you.');
-      return !hit && arrow.x > -20 && arrow.x < this.viewWidth + 20 && arrow.y > -20 && arrow.y < this.viewHeight + 20;
+      return !hit && arrow.x > -20 && arrow.x < this.viewWidth + 20 && arrow.y > this.playTop - 20 && arrow.y < this.viewHeight + 20;
     });
   }
 
@@ -174,29 +177,85 @@ export default class ForestChaseGame {
   }
 
   drawForest(context) {
+    context.fillStyle = '#08131b';
+    context.fillRect(0, 0, this.viewWidth, this.hudHeight);
     const gradient = context.createLinearGradient(0, 0, 0, this.viewHeight);
-    gradient.addColorStop(0, '#123b2b');
-    gradient.addColorStop(1, '#6a8f48');
+    gradient.addColorStop(0, '#0c1d29');
+    gradient.addColorStop(0.52, '#163b3c');
+    gradient.addColorStop(1, '#172d25');
     context.fillStyle = gradient;
-    context.fillRect(0, 0, this.viewWidth, this.viewHeight);
-    context.fillStyle = 'rgba(223, 196, 116, 0.2)';
-    for (let index = 0; index < 18; index += 1) {
+    context.fillRect(0, this.playTop, this.viewWidth, this.playHeight);
+
+    context.fillStyle = '#f4f0c7';
+    context.beginPath();
+    context.arc(this.viewWidth * 0.78, this.playTop + 105, 41, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = 'rgba(244, 240, 199, 0.12)';
+    context.beginPath();
+    context.arc(this.viewWidth * 0.78, this.playTop + 105, 115, 0, Math.PI * 2);
+    context.fill();
+
+    context.fillStyle = '#a2ad85';
+    for (let index = 0; index < 34; index += 1) {
       const x = (index * 137 + 48) % this.viewWidth;
-      const y = (index * 83 + 60) % this.viewHeight;
-      context.beginPath();
-      context.ellipse(x, y, 70, 16, -0.2, 0, Math.PI * 2);
-      context.fill();
+      const y = this.playTop + ((index * 83 + 22) % Math.max(40, this.playHeight - 80));
+      context.fillRect(x, y, 3, 3);
     }
-    for (let index = 0; index < 28; index += 1) {
+
+    for (let index = 0; index < 25; index += 1) {
       const x = (index * 97 + 20) % this.viewWidth;
-      const y = (index * 53 + 35) % this.viewHeight;
-      const size = 18 + (index % 4) * 6;
-      context.fillStyle = index % 2 ? '#1e5b3d' : '#286947';
-      context.fillRect(x - 5, y + size * 0.4, 10, size * 1.5);
+      const y = this.playTop + 120 + ((index * 53 + 35) % Math.max(40, this.playHeight - 150));
+      const size = 22 + (index % 4) * 8;
+      context.fillStyle = index % 2 ? '#173936' : '#205044';
+      context.fillRect(x - 5, y + size * 0.4, 10, size * 1.6);
       context.beginPath();
-      context.arc(x, y, size, 0, Math.PI * 2);
+      context.moveTo(x, y - size);
+      context.lineTo(x - size, y + size);
+      context.lineTo(x + size, y + size);
+      context.closePath();
       context.fill();
     }
+
+    context.fillStyle = 'rgba(32, 52, 39, 0.9)';
+    context.fillRect(0, this.viewHeight - 210, this.viewWidth, 210);
+    this.drawLog(context, this.viewWidth * 0.55, this.playTop + 220, -0.2);
+    this.drawLog(context, this.viewWidth * 0.78, this.viewHeight - 145, -0.18);
+    this.drawRock(context, this.viewWidth * 0.42, this.viewHeight - 120, 25);
+    this.drawRock(context, this.viewWidth * 0.15, this.viewHeight - 70, 18);
+    for (let index = 0; index < 16; index += 1) {
+      const x = (index * 89 + 33) % this.viewWidth;
+      const y = this.playTop + 130 + ((index * 47) % Math.max(50, this.playHeight - 170));
+      context.fillStyle = '#d6df82';
+      context.globalAlpha = 0.75;
+      context.beginPath(); context.arc(x, y, 3, 0, Math.PI * 2); context.fill();
+      context.globalAlpha = 1;
+    }
+  }
+
+  drawLog(context, x, y, angle) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(angle);
+    context.fillStyle = '#653c2d';
+    context.fillRect(-56, -12, 112, 24);
+    context.fillStyle = '#aa7b4e';
+    context.beginPath(); context.arc(-56, 0, 13, 0, Math.PI * 2); context.fill();
+    context.strokeStyle = '#765035';
+    context.lineWidth = 3;
+    context.beginPath(); context.arc(-56, 0, 7, 0, Math.PI * 2); context.stroke();
+    context.fillStyle = '#77a05b';
+    context.beginPath(); context.arc(8, -18, 10, 0, Math.PI * 2); context.arc(30, -18, 9, 0, Math.PI * 2); context.fill();
+    context.restore();
+  }
+
+  drawRock(context, x, y, size) {
+    context.fillStyle = '#26352e';
+    context.beginPath();
+    context.moveTo(x - size, y + size); context.lineTo(x - size * 0.55, y - size);
+    context.lineTo(x + size * 0.55, y - size * 1.25); context.lineTo(x + size, y + size);
+    context.closePath(); context.fill();
+    context.fillStyle = '#68715e';
+    context.beginPath(); context.moveTo(x - size * 0.55, y - size); context.lineTo(x + size * 0.55, y - size * 1.25); context.lineTo(x + size * 0.2, y - size * 0.2); context.closePath(); context.fill();
   }
 
   drawHuman(context, x, y) {
@@ -266,13 +325,31 @@ export default class ForestChaseGame {
   }
 
   drawHud(context) {
-    context.fillStyle = 'rgba(7, 24, 18, 0.78)';
-    context.fillRect(14, 14, 260, 58);
-    context.fillStyle = '#f6e6b8';
-    context.font = 'bold 16px sans-serif';
-    context.fillText(`LEVEL ${this.level}`, 28, 37);
-    context.font = '14px sans-serif';
-    context.fillText(`Survive: ${Math.max(0, Math.ceil(this.levelDuration - this.elapsed))}s`, 28, 58);
+    context.fillStyle = '#d8ef84';
+    context.font = 'bold 14px monospace';
+    context.fillText('LEVEL', 16, 28); context.fillText('TIME', 135, 28); context.fillText('BEST', 280, 28);
+    context.font = 'bold 27px monospace';
+    context.fillStyle = '#f7f3dc';
+    context.fillText(String(this.level).padStart(2, '0'), 16, 66);
+    context.fillText(this.formatTime(this.elapsed), 135, 66);
+    context.fillText('01:00', 280, 66);
+    this.drawBar(context, 424, 56, 230, this.level === 2 ? 0.65 : 0.75, 'HEALTH', '#d8ef84');
+    this.drawBar(context, 724, 56, 190, 1, 'STAMINA', '#96d8c2');
+  }
+
+  drawBar(context, x, y, width, value, label, color) {
+    context.fillStyle = '#d8ef84';
+    context.font = 'bold 14px monospace';
+    context.fillText(label, x, 36);
+    context.fillStyle = '#f7f3dc';
+    context.fillText(`${Math.round(value * 100)}%`, x + width - 35, 36);
+    context.fillStyle = '#28342d'; context.fillRect(x, y, width, 8);
+    context.fillStyle = color; context.fillRect(x, y, width * value, 8);
+  }
+
+  formatTime(seconds) {
+    const remaining = Math.max(0, Math.floor(seconds));
+    return `00:${String(remaining).padStart(2, '0')}`;
   }
 
   drawEndScreen(context) {
